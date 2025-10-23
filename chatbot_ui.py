@@ -8,7 +8,7 @@ from chatbot_run import normalize_answer, generate_summary
 # ------------------ MODEL LOAD ------------------
 @st.cache_resource
 def load_model():
-    model_name = "google/flan-t5-large"  # use flan-t5-large for better speed
+    model_name = "google/flan-t5-small" #"google/flan-t5-large"  # use flan-t5-large for better speed
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(
         model_name,
