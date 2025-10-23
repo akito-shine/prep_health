@@ -142,6 +142,47 @@ def get_next_question():
     return None  # no more questions
 
 
+# ------------------ CHAT INPUT HANDLER (normalized)------------------
+# if not st.session_state.completed:
+#     if user_input := st.chat_input("Type your answer..."):
+#         q = st.session_state.current_question
+#         qid = q["id"]
+#         qtext = q["text"]
+
+#         # Record user message
+#         st.session_state.messages.append({"role": "user", "content": user_input})
+
+#         # Save and normalize
+#         st.session_state.answers[qid] = user_input.strip()
+#         st.session_state.question_texts[qid] = qtext
+
+#         # Normalize (except for contact info)
+#         if qid not in ["whatsapp", "email", "schedule_time", "upload_bloodtest", "hiv_test_upload"]:
+#             norm = normalize_answer(qid, user_input)
+#             st.session_state.answers[qid + "_normalized"] = norm
+#             bot_reply = f"(Normalized answer: **{norm}**)"
+#         else:
+#             bot_reply = "(Recorded.)"
+
+#         st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+
+#         # Determine next question
+#         next_q = get_next_question()
+#         if next_q:
+#             st.session_state.current_question = next_q
+#             st.session_state.messages.append({"role": "assistant", "content": next_q["text"]})
+#         else:
+#             # Done! Generate summary
+#             st.session_state.completed = True
+#             summary = generate_summary(st.session_state.answers, st.session_state.question_texts)
+#             summary = summary.replace("This user", "You")
+#             st.session_state.messages.append({
+#                 "role": "assistant",
+#                 "content": "You've completed the PrEP pre-screening!\n\n**Summary:**\n" + summary
+#             })
+
+#         st.rerun()
+
 # ------------------ CHAT INPUT HANDLER ------------------
 if not st.session_state.completed:
     if user_input := st.chat_input("Type your answer..."):
@@ -152,19 +193,17 @@ if not st.session_state.completed:
         # Record user message
         st.session_state.messages.append({"role": "user", "content": user_input})
 
-        # Save and normalize
+        # Save answer internally
         st.session_state.answers[qid] = user_input.strip()
         st.session_state.question_texts[qid] = qtext
 
-        # Normalize (except for contact info)
+        # Normalize internally (do NOT display)
         if qid not in ["whatsapp", "email", "schedule_time", "upload_bloodtest", "hiv_test_upload"]:
             norm = normalize_answer(qid, user_input)
             st.session_state.answers[qid + "_normalized"] = norm
-            bot_reply = f"(Normalized answer: **{norm}**)"
-        else:
-            bot_reply = "(Recorded.)"
 
-        st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+        # For bot reply, just a placeholder message (or empty) if you want no extra message
+        bot_reply = ""  # keeps NameError away
 
         # Determine next question
         next_q = get_next_question()
@@ -182,7 +221,6 @@ if not st.session_state.completed:
             })
 
         st.rerun()
-
 
 else:
     if st.button("Restart Chat"):

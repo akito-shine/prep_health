@@ -94,7 +94,7 @@ def generate_summary(answers, question_texts):
             question_text = question_texts.get(key, key.replace('_', ' ').title())
             qa_text += f"Question: {question_text}\nAnswer: {value}\n"
 
-    Step 2: Strong prompt to enforce reasoning
+    #Step 2: Strong prompt to enforce reasoning
     summary_prompt = (
         "You are a digital sexual health assistant. Carefully read the user's answers below. "
         "Your task is to provide a single **recommendation**: either the user can self-check/self-initiate PrEP (eligible) "
