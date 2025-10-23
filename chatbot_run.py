@@ -1,118 +1,4 @@
-# from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-# import torch
-# from chatbot_flow import QUESTIONS, classify_review  # your existing questions & logic
 
-# # --- Set device ---
-# device = "cuda" if torch.cuda.is_available() else "cpu"
-# print(f"Using device: {device}")
-
-# # --- Load model & tokenizer ---
-# model_name = "google/flan-t5-xl"  # or "google/flan-t5-large" if still too big
-
-# tokenizer = AutoTokenizer.from_pretrained(model_name)
-
-# model = AutoModelForSeq2SeqLM.from_pretrained(
-#     model_name,
-#     device_map="auto",       # automatically put layers across GPU/CPU
-#     load_in_8bit=True        # quantize to 8-bit to save memory
-# )
-# model.eval()
-
-# # --- Normalize free-text answer ---
-# def normalize_answer(question_id, user_input):
-#     """
-#     Use seq2seq LLM to normalize free-text answer to one or more keywords.
-#     """
-#     options_map = {
-#         "prep_history": ["yes", "no"],
-#         "partners": ["0-3", "3-6", ">7", "prefer not to say"],
-#         "condom_use": ["always", "sometimes", "never"],
-#         "partner_type": ["injectable", "gay", "bisexual", "transgender", "none"],
-#         "preventive_options": ["doxycycline", "at-home hiv test kit", "anal care", "hsv antivirals", "none"],
-#         "vaccinations": ["hpv", "hepatitis a", "hepatitis b", "mpox", "gonorrhea", "none"],
-#          "prep_followup": ["yes", "no"]
-#     }
-
-#     # --- Build prompt based on question ---
-#     if question_id in ["prep_history", "partners", "condom_use","prep_followup"]:
-#         prompt = (
-#             f'User answer: "{user_input}"\n'
-#             f'Options: {options_map[question_id]}\n'
-#             'Interpret the user meaning carefully and choose the correct keyword from the list based on meaning, not exact words. Answer appropriate follow up question if you are not clear.Respond ONLY with one keyword.'
-
-#         )
-
-#     elif question_id in ["partner_type", "preventive_options", "vaccinations"]:
-#         prompt = (
-#             f'You are helping to classify the user\'s answer into clear medical keywords.\n'
-#             f'Question category: {question_id}\n'
-#             f'User answer: "{user_input}"\n'
-#             f'Valid keywords: {options_map[question_id]}\n\n'
-#             'Task: Identify which of the valid keywords are mentioned in the user\'s answer.\n'
-#             'Respond ONLY with the keywords, separated by commas, if multiple apply. '
-#             'Answer appropriate follow up question if you are not clear.'
-#             'If none match, respond exactly with "none". No explanations or extra text.'
-#     )
-
-#     else:
-#         prompt = (
-#             f'Question: {question_id}\n'
-#             f'User answer: "{user_input}"\n'
-#             'Respond with a simple keyword suitable for rule checking.'
-#         )
-
-#     # --- Run model ---
-#     inputs = tokenizer(prompt, return_tensors="pt").to(device)
-#     with torch.inference_mode():
-#         outputs = model.generate(**inputs, max_new_tokens=20)
-#     normalized = tokenizer.decode(outputs[0], skip_special_tokens=True).lower().strip()
-
-#     # --- Post-processing to match valid options ---
-#     if question_id in options_map:
-#         valid_options = options_map[question_id]
-#         if question_id in ["prep_history", "partners", "condom_use","prep_followup"]:
-#             # Single-choice: return first valid match
-#             for kw in valid_options:
-#                 if kw in normalized:
-#                     normalized = kw
-#                     break
-#             else:
-#                 normalized = "none"
-#         else:
-#             # Multi-choice: return only valid keywords found
-#             found = [kw for kw in valid_options if kw in normalized]
-#             normalized = ", ".join(found) if found else "none"
-
-#     return normalized
-
-# # --- Chatbot session ---
-# def run_chatbot():
-#     print("Hi! Let's check if you need a doctor consultation before starting PrEP.\n")
-#     answers = {}
-
-#     for q in QUESTIONS:
-#         user_input = input(q["text"] + "\nYour answer: ").strip()
-#         answers[q["id"]] = user_input
-
-#         # Normalize using LLM for all except WhatsApp
-#         if q["id"] != "whatsapp":
-#             normalized = normalize_answer(q["id"], user_input)
-#             answers[q["id"] + "_normalized"] = normalized
-#             print(f"(Normalized answer: {normalized})")  # optional debug
-#         print()
-
-#     # --- Classify review ---
-#     needs_review, reason = classify_review(answers)
-
-#     print("-----\nRESULT\n-----")
-#     print("Doctor review REQUIRED" if needs_review else "No doctor review needed")
-#     print("Reason:", reason)
-#     print("\nAll collected answers (raw + normalized):")
-#     for k, v in answers.items():
-#         print(f"{k}: {v}")
-
-# if __name__ == "__main__":
-#     run_chatbot()
 
 # chatbot_run.py
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
@@ -196,16 +82,53 @@ def normalize_answer(question_id, user_input):
             normalized = ", ".join(found) if found else "none"
 
     return normalized
+def generate_summary(answers, question_texts):
+    """
+    Generates a PrEP recommendation with clear justification.
+    """
+
+    # Step 1: Prepare readable Q&A
+    qa_text = ""
+    for key, value in answers.items():
+        if not key.endswith("_normalized"):
+            question_text = question_texts.get(key, key.replace('_', ' ').title())
+            qa_text += f"Question: {question_text}\nAnswer: {value}\n"
+
+    Step 2: Strong prompt to enforce reasoning
+    summary_prompt = (
+        "You are a digital sexual health assistant. Carefully read the user's answers below. "
+        "Your task is to provide a single **recommendation**: either the user can self-check/self-initiate PrEP (eligible) "
+        "or they should see a doctor.\n\n"
+        "Immediately after the recommendation, provide a **clear, concise justification** for your recommendation. "
+        "Cite key answers such as PrEP history, HIV test results, number of partners, condom use, partner types, preventive measures, and vaccinations. "
+        "Do NOT list all answers; only refer to the relevant points supporting your recommendation. "
+        "Write in one paragraph, supportive tone, and in the second person ('You'). "
+        "Do NOT give multiple options or hedged statements.\n\n"
+        f"User's answers:\n{qa_text}\n\n"
+        "Write the recommendation and justification paragraph:"
+    )
+
+    # Step 3: Generate
+    inputs = tokenizer(summary_prompt, return_tensors="pt").to(device)
+    with torch.inference_mode():
+        outputs = model.generate(**inputs, max_new_tokens=400)
+
+    summary = tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
+    summary = summary.replace("This user", "You").replace("the user", "you")
+    return summary
+
+
+
 
 def run_chatbot():
     print("Hi! Let's go through a short PrEP pre-screening.\n")
     answers = {}
-
+    question_texts={}
     # 1) Ask all main questions first
     for q in QUESTIONS:
         user_input = input(q["text"] + "\nYour answer: ").strip()
         answers[q["id"]] = user_input
-
+        question_texts[q["id"]] = q["text"]  # store question text
         if q["id"] != "whatsapp":
             normalized = normalize_answer(q["id"], user_input)
             answers[q["id"] + "_normalized"] = normalized
@@ -221,6 +144,7 @@ def run_chatbot():
 
         user_input = input(followup_q["text"] + "\nYour answer: ").strip()
         answers[followup_q["id"]] = user_input
+        question_texts[followup_q["id"]] = followup_q["text"]
         normalized = normalize_answer(followup_q["id"], user_input)
         answers[followup_q["id"] + "_normalized"] = normalized
         print(f"(Normalized answer: {normalized})\n")
@@ -239,6 +163,7 @@ def run_chatbot():
 
             user_input = input(final_q["text"] + "\nYour response: ").strip()
             answers[final_q["id"]] = user_input
+            question_texts[final_q["id"]] = final_q["text"]
             normalized = normalize_answer(final_q["id"], user_input)
             answers[final_q["id"] + "_normalized"] = normalized
             print(f"(Normalized next step: {normalized})\n")
@@ -251,6 +176,7 @@ def run_chatbot():
                 }
                 user_input = input(upload_q["text"] + "\nYour response: ").strip()
                 answers[upload_q["id"]] = user_input
+                question_texts[upload_q["id"]] = upload_q["text"]
                 print("(HIV test upload recorded)\n")
 
                 # --- Ask PrEP usage plan ---
@@ -261,6 +187,7 @@ def run_chatbot():
 
                 user_input = input(prep_plan_q["text"] + "\nYour answer: ").strip()
                 answers[prep_plan_q["id"]] = user_input
+                question_texts[prep_plan_q["id"]] = prep_plan_q["text"]
                 normalized = normalize_answer(prep_plan_q["id"], user_input)
                 answers[prep_plan_q["id"] + "_normalized"] = normalized
                 print(f"(Normalized answer: {normalized})\n")
@@ -272,6 +199,7 @@ def run_chatbot():
 
                 user_input = input(prep_refills["text"] + "\nYour answer: ").strip()
                 answers[prep_refills["id"]] = user_input
+                question_texts[prep_refills["id"]] = prep_refills["text"]
                 normalized = normalize_answer(prep_refills["id"], user_input)
                 answers[prep_refills["id"] + "_normalized"] = normalized
                 print(f"(Normalized answer: {normalized})\n")
@@ -284,6 +212,7 @@ def run_chatbot():
                 }
                 user_input = input(schedule_time["text"] + "\nYour response: ").strip()
                 answers[schedule_time["id"]] = user_input
+                question_texts[schedule_time["id"]] = schedule_time["text"]
                 print("(Schedule a time for Full Sexual Health Screening)\n")
             
         else:
@@ -293,6 +222,7 @@ def run_chatbot():
                 }
             user_input = input(upload_bloodtest["text"] + "\nYour response: ").strip()
             answers[upload_bloodtest["id"]] = user_input
+            question_texts[upload_bloodtest["id"]] = upload_bloodtest["text"]
             print("(Upload succeeded\n")
 
             
@@ -303,6 +233,7 @@ def run_chatbot():
 
             user_input = input(prep_plan_q["text"] + "\nYour answer: ").strip()
             answers[prep_plan_q["id"]] = user_input
+            question_texts[prep_plan_q["id"]] = prep_plan_q["text"]
             normalized = normalize_answer(prep_plan_q["id"], user_input)
             answers[prep_plan_q["id"] + "_normalized"] = normalized
             print(f"(Normalized answer: {normalized})\n")
@@ -316,6 +247,7 @@ def run_chatbot():
 
             user_input = input(prep_refills["text"] + "\nYour answer: ").strip()
             answers[prep_refills["id"]] = user_input
+            question_texts[prep_refills["id"]] = prep_refills["text"]
             normalized = normalize_answer(prep_refills["id"], user_input)
             answers[prep_refills["id"] + "_normalized"] = normalized
             print(f"(Normalized answer: {normalized})\n")
@@ -329,10 +261,27 @@ def run_chatbot():
 
         user_input = input(see_doctor["text"] + "\nYour answer: ").strip()
         answers[see_doctor["id"]] = user_input
+        question_texts[see_doctor["id"]] = see_doctor["text"]
         normalized = normalize_answer(see_doctor["id"], user_input)
-        answers[followup_q["id"] + "_normalized"] = normalized
+        answers[see_doctor["id"] + "_normalized"] = normalized
         print(f"(Normalized answer: {normalized})\n")
-        
+    
+    email = {
+            "id": "email",
+            "text": "Do you have a PrEP prescription or recent HIV blood test?"
+        }
+
+    user_input = input(email["id"] + "\nYour answer: ").strip()
+    answers[email["id"]] = user_input
+    normalized = normalize_answer(email["id"], user_input)
+    answers[email["id"] + "_normalized"] = normalized
+    print(f"(Normalized answer: {normalized})\n")
+
+    # After collecting all answers
+    summary = generate_summary(answers,question_texts)
+    print("\n--- User Summary ---")
+    print(summary)
+
     # Done
     print("Submitted!")
     for k, v in answers.items():

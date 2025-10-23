@@ -1,38 +1,10 @@
 # chatbot_flow.py
-
-# --- Conversation questions ---
-
-
-
-# --- Decision rules ---
-# def classify_review(answers):
-#     """
-#     Returns True if doctor review is needed, False otherwise.
-#     """
-#     # First-time user
-#     if answers.get("prep_history_normalized") == "no":
-#         return True, "First-time user — needs doctor education and baseline check."
-    
-#     # High-risk sexual behavior
-#     if answers.get("partners_normalized") == ">7" or answers.get("condom_use_normalized") == "never":
-#         return True, "High-risk behavior — doctor review suggested."
-    
-#     # Partner type risk
-#     risky_partners = ["injectable", "gay", "bisexual", "transgender"]
-#     partner_risk = answers.get("partner_type_normalized", "")
-#     if any(rp in partner_risk for rp in risky_partners):
-#         return True, "Sexual partners with higher risk — doctor review recommended."
-    
-#     # Default: no review needed
-#     return False, "No doctor review required — you can proceed."
-
-# chatbot_flow.py
 QUESTIONS = [
     {"id": "prep_history", "text": "Have you used PrEP before?"},
     {"id": "partners", "text": "How many sexual encounters have you had in the past 3 months?"},
     {"id": "condom_use", "text": "How often do you use a condom?"},
-    {"id": "partner_type", "text": "Have you had sex with anyone who is uses injectable drugs,gay/bisexual Mmn,transgender or Nnne"},
-    {"id": "preventive_options", "text": "Would you consider using these sexual wellness preventive options? (Doxycycline, At-home HIV test kit, Post anal sex care, Antivirals for HSV)"},
+    {"id": "partner_type", "text": "Have you had sex with anyone who is uses injectable drugs,gay/bisexual,transgender or None"},
+    {"id": "preventive_options", "text": "Would you consider using these sexual wellness preventive options? (Doxycycline, At-home HIV test kit, Post anal or annual inflammatory sex care, Antivirals for HSV)"},
     {"id": "vaccinations", "text": "Which of these vaccinations have you had? (HPV, Hepatitis A, Hepatitis B, MPox, Gonorrhea (Beserox))"},
     {"id": "whatsapp", "text": "What is your WhatsApp number?"}
 ]
