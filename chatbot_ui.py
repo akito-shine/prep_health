@@ -7,16 +7,16 @@ from chatbot_run import normalize_answer, generate_summary
 
 # ------------------ MODEL LOAD ------------------
 @st.cache_resource
+@st.cache_resource
 def load_model():
-    model_name = "google/flan-t5-small" #"google/flan-t5-large"  # use flan-t5-large for better speed
+    model_name = "google/flan-t5-small"  # small model works on CPU
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSeq2SeqLM.from_pretrained(
-        model_name,
-        device_map="auto",
-        load_in_8bit=True
-    )
-    model.eval()
+    
+    # Load model on CPU only (remove 8-bit and device_map)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
+    model.eval()
     return tokenizer, model, device
 
 

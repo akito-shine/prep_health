@@ -10,15 +10,11 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
 # --- Load model & tokenizer ---
-model_name = "google/flan-t5-xl"  # or "google/flan-t5-large" if still too big
-
+model_name = "google/flan-t5-small"   # or "google/flan-t5-large" if still too big
 tokenizer = AutoTokenizer.from_pretrained(model_name)
-
-model = AutoModelForSeq2SeqLM.from_pretrained(
-    model_name,
-    device_map="auto",
-    load_in_8bit=True
-)
+model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model.to(device)
 model.eval()
 
 # --- Normalize free-text answer ---
