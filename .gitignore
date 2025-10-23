@@ -1,6 +1,15 @@
 # Python cache
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+venv/
+*.pt
+*.bin
+*.zip
+*.tar.gz
+
+
 
 # Hugging Face cache
 .cache/
